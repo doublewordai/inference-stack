@@ -1,0 +1,58 @@
+# Helm Chart .gitignore
+
+# Helm package files
+*.tgz
+charts/*/charts/
+charts/*/Chart.lock
+
+# Helm dependencies
+charts/*/requirements.lock
+
+# Helm release packages
+releases/
+*.tar.gz
+
+# Values files with secrets (customize as needed)
+values-secret.yaml
+values-prod.yaml
+**/secrets.yaml
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Kubernetes generated files
+*.kubeconfig
+kubeconfig*
+
+# Docker files (if building custom images)
+Dockerfile.local
+docker-compose.override.yml
+
+# Local development
+.env
+.env.local
+local/

@@ -1,0 +1,239 @@
+# Onwards Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inference-stack.fullname" . }}-onwards
+  labels:
+    {{- include "inference-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onwards
+spec:
+  replicas: {{ .Values.onwards.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "inference-stack.onwards.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "inference-stack.onwards.config" . | sha256sum }}
+        {{- with .Values.onwards.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "inference-stack.onwards.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.onwards.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "inference-stack.onwards.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.onwards.podSecurityContext | nindent 8 }}
+      containers:
+        - name: onwards
+          securityContext:
+            {{- toYaml .Values.onwards.securityContext | nindent 12 }}
+          image: "{{ .Values.onwards.image.repository }}:{{ .Values.onwards.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.onwards.image.pullPolicy }}
+          args:
+            - "-f=/app/config/config.json"
+            {{- if .Values.onwards.metrics.enabled }}
+            - "--metrics"
+            - "--metrics-port={{ .Values.onwards.metrics.port }}"
+            - "--metrics-prefix={{ .Values.onwards.metrics.prefix }}"
+            {{- end }}
+            {{- with .Values.onwards.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.onwards.containerPort }}
+              protocol: TCP
+            {{- if .Values.onwards.metrics.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.onwards.metrics.port }}
+              protocol: TCP
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.onwards.probes.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.onwards.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.onwards.probes.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.onwards.probes.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.onwards.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.onwards.probes.readiness.periodSeconds }}
+          resources:
+            {{- toYaml .Values.onwards.resources | nindent 12 }}
+          env:
+            {{- with .Values.onwards.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            {{- with .Values.onwards.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "inference-stack.fullname" . }}-onwards
+        {{- with .Values.onwards.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.onwards.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.onwards.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.onwards.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+---
+# Model Group Deployments
+{{- range $groupName, $group := .Values.modelGroups }}
+{{- if $group.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}
+  labels:
+    {{- include "inference-stack.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: model-group
+    app.kubernetes.io/model-group: {{ $groupName }}
+spec:
+  replicas: {{ $group.replicaCount }}
+  {{- with $group.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "inference-stack.modelGroup.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/model-group: {{ $groupName }}
+  template:
+    metadata:
+      annotations:
+        {{- with $group.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "inference-stack.modelGroup.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/model-group: {{ $groupName }}
+    spec:
+      {{- with $group.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and $group.serviceAccount $group.serviceAccount.create }}
+      serviceAccountName: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $group.podSecurityContext | nindent 8 }}
+      {{- if $group.initContainers }}
+      initContainers:
+        {{- toYaml $group.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $groupName }}
+          securityContext:
+            {{- toYaml $group.securityContext | nindent 12 }}
+          image: "{{ $group.image }}:{{ $group.tag }}"
+          imagePullPolicy: {{ $group.imagePullPolicy }}
+          {{- if $group.command }}
+          command:
+            {{- toYaml $group.command | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $group.containerPort }}
+              protocol: TCP
+            {{- range $group.additionalPorts }}
+            - name: {{ .name }}
+              containerPort: {{ .containerPort }}
+              protocol: {{ .protocol | default "TCP" }}
+            {{- end }}
+          {{- if and $group.livenessProbe $group.livenessProbe.enabled }}
+          livenessProbe:
+            {{- if eq $group.livenessProbe.type "http" }}
+            httpGet:
+              path: {{ $group.livenessProbe.path }}
+              port: http
+            {{- else if eq $group.livenessProbe.type "tcp" }}
+            tcpSocket:
+              port: http
+            {{- end }}
+            initialDelaySeconds: {{ $group.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $group.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $group.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ $group.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if and $group.readinessProbe $group.readinessProbe.enabled }}
+          readinessProbe:
+            {{- if eq $group.readinessProbe.type "http" }}
+            httpGet:
+              path: {{ $group.readinessProbe.path }}
+              port: http
+            {{- else if eq $group.readinessProbe.type "tcp" }}
+            tcpSocket:
+              port: http
+            {{- end }}
+            initialDelaySeconds: {{ $group.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $group.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $group.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ $group.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml $group.resources | nindent 12 }}
+          env:
+            {{- with $group.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if or $group.volumeMounts $group.persistentVolumes }}
+          volumeMounts:
+            {{- range $pvc := $group.persistentVolumes }}
+            - name: {{ $pvc.name }}
+              mountPath: {{ $pvc.mountPath }}
+              {{- if $pvc.subPath }}
+              subPath: {{ $pvc.subPath }}
+              {{- end }}
+            {{- end }}
+            {{- with $group.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+      {{- if or $group.volumes $group.persistentVolumes }}
+      volumes:
+        {{- range $pvc := $group.persistentVolumes }}
+        - name: {{ $pvc.name }}
+          persistentVolumeClaim:
+            claimName: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}-{{ $pvc.name }}
+        {{- end }}
+        {{- with $group.volumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with $group.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $group.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $group.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

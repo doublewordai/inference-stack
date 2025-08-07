@@ -1,0 +1,306 @@
+# Example: Multi-Engine Model Deployment
+# This example shows how to deploy multiple models using different inference engines
+# Demonstrates the full power of the inference-stack with unified API
+
+# Model Groups - Multiple engines serving different use cases
+modelGroups:
+  # vLLM for general text generation - High throughput, good for chat
+  vllm-llama:
+    enabled: true
+    
+    image: vllm/vllm-openai
+    tag: v0.6.4
+    imagePullPolicy: IfNotPresent
+    
+    modelAlias:
+      - "chat"
+      - "llama-3.1-8b"
+      - "text-generation"
+    
+    modelName: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    
+    service:
+      type: ClusterIP
+      port: 8000
+    
+    containerPort: 8000
+    replicaCount: 2  # Scale for high availability
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    command:
+      - "vllm"
+      - "serve"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--model"
+      - "meta-llama/Meta-Llama-3.1-8B-Instruct"
+      - "--max-model-len"
+      - "16384"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--enable-prefix-caching"
+      - "--max-num-seqs"
+      - "32"
+    
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: HF_HOME
+        value: /tmp
+      - name: HF_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: hf-secret
+            key: token
+    
+    livenessProbe:
+      enabled: true
+      type: http
+      path: /health
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    
+    readinessProbe:
+      enabled: true
+      type: http
+      path: /health
+      initialDelaySeconds: 300
+      periodSeconds: 5
+    
+    resources:
+      requests:
+        memory: "16Gi"
+        cpu: "4"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "24Gi"
+    
+    persistentVolumes:
+      - name: model-cache
+        size: 50Gi
+        storageClass: "fast-ssd"
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /root/.cache/huggingface
+    
+    podSecurityContext:
+      runAsUser: 0
+    
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+      node-type: "gpu-standard"
+    
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+  # SGLang for embedding models - Optimized for shorter sequences
+  sglang-embed:
+    enabled: true
+    
+    image: lmsysorg/sglang
+    tag: v0.3.5.post1
+    imagePullPolicy: IfNotPresent
+    
+    modelAlias:
+      - "embeddings"
+      - "embed"
+      - "sentence-transformer"
+    
+    modelName: "BAAI/bge-large-en-v1.5"
+    
+    service:
+      type: ClusterIP
+      port: 30001
+    
+    containerPort: 30001
+    replicaCount: 1
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    command:
+      - "python"
+      - "-m"
+      - "sglang.launch_server"
+      - "--model-path"
+      - "BAAI/bge-large-en-v1.5"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "30001"
+      - "--mem-fraction-static"
+      - "0.7"
+      - "--context-length"
+      - "512"  # Shorter for embeddings
+      - "--enable-flashinfer"
+    
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: SGLANG_LOG_LEVEL
+        value: "info"
+    
+    livenessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    
+    readinessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 300
+      periodSeconds: 5
+    
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "2"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "12Gi"
+    
+    persistentVolumes:
+      - name: model-cache
+        size: 30Gi
+        storageClass: "standard"
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /root/.cache
+    
+    volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+    
+    volumeMounts:
+      - name: shm
+        mountPath: /dev/shm
+    
+    podSecurityContext:
+      runAsUser: 0
+    
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+      node-type: "gpu-standard"
+
+  # TensorRT-LLM for high-performance inference - Optimized compiled models
+  tensorrt-codegen:
+    enabled: true
+    
+    image: nvcr.io/nvidia/tritonserver
+    tag: 24.01-trtllm-python-py3
+    imagePullPolicy: IfNotPresent
+    
+    modelAlias:
+      - "code-generation"
+      - "codegen"
+      - "programming"
+    
+    modelName: "Salesforce/codegen-2B-multi"
+    
+    service:
+      type: ClusterIP
+      port: 8001
+    
+    containerPort: 8001
+    replicaCount: 1
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    command:
+      - "tritonserver"
+      - "--model-repository=/models"
+      - "--allow-grpc=false"
+      - "--allow-http=true"
+      - "--allow-metrics=true"
+      - "--http-port=8001"
+      - "--metrics-port=8002"
+      - "--backend-config=python,shm-default-byte-size=16777216"
+    
+    additionalPorts:
+      - name: metrics
+        containerPort: 8002
+        servicePort: 8002
+    
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: TENSORRT_LLM_LOG_LEVEL
+        value: "INFO"
+    
+    livenessProbe:
+      enabled: true
+      type: http
+      path: /v2/health/live
+      initialDelaySeconds: 180
+      periodSeconds: 15
+    
+    readinessProbe:
+      enabled: true
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 300
+      periodSeconds: 10
+      failureThreshold: 30
+    
+    resources:
+      requests:
+        memory: "16Gi"
+        cpu: "6"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "24Gi"
+    
+    persistentVolumes:
+      - name: model-storage
+        size: 80Gi
+        storageClass: "fast-ssd"
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /models
+    
+    volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+    
+    volumeMounts:
+      - name: shm
+        mountPath: /dev/shm
+    
+    podSecurityContext:
+      runAsUser: 0
+    
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+      node-type: "gpu-high-memory"  # Prefer nodes with more memory
+    
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

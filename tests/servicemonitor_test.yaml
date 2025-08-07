@@ -1,0 +1,118 @@
+suite: test servicemonitor
+tests:
+  - it: should render servicemonitor when enabled
+    template: templates/servicemonitor.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      serviceMonitor:
+        enabled: true
+        labels:
+          prometheus: kube-prometheus
+        interval: 15s
+        scrapeTimeout: 5s
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-onwards
+      - equal:
+          path: metadata.labels.prometheus
+          value: kube-prometheus
+      - equal:
+          path: spec.endpoints[0].interval
+          value: 15s
+      - equal:
+          path: spec.endpoints[0].scrapeTimeout
+          value: 5s
+
+  - it: should not render servicemonitor when disabled
+    template: templates/servicemonitor.yaml
+    set:
+      serviceMonitor:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render model group servicemonitors when enabled
+    template: templates/servicemonitor.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-test-model
+    set:
+      serviceMonitor:
+        enabled: true
+        namespace: monitoring
+      modelGroups:
+        vllm-llama:
+          enabled: false
+        sglang-qwen:
+          enabled: false
+        tensorrt-llm-mistral:
+          enabled: false
+        test-model:
+          enabled: true
+          service:
+            type: ClusterIP
+            port: 8000
+          additionalPorts: []
+          persistentVolumes: []
+          serviceAccount:
+            create: false
+          livenessProbe:
+            enabled: false
+          readinessProbe:
+            enabled: false
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-test-model
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+      - equal:
+          path: metadata.labels["app.kubernetes.io/model-group"]
+          value: test-model
+
+  - it: should support custom namespace
+    template: templates/servicemonitor.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      serviceMonitor:
+        enabled: true
+        namespace: monitoring
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+
+  - it: should support custom labels and annotations
+    template: templates/servicemonitor.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      serviceMonitor:
+        enabled: true
+        labels:
+          custom: label
+        annotations:
+          custom: annotation
+    asserts:
+      - equal:
+          path: metadata.labels.custom
+          value: label
+      - equal:
+          path: metadata.annotations.custom
+          value: annotation

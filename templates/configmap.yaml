@@ -1,0 +1,11 @@
+# Onwards Gateway Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "inference-stack.fullname" . }}-onwards
+  labels:
+    {{- include "inference-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onwards
+data:
+  config.json: |-
+{{ include "inference-stack.onwards.config" . | indent 4 }}

@@ -1,0 +1,136 @@
+# Example: Single SGLang Model Deployment
+# This example shows how to deploy a model using SGLang engine
+# SGLang provides efficient serving with advanced batching and RadixAttention
+
+# Model configuration
+modelGroups:
+  # SGLang deployment for Qwen 2.5 7B
+  sglang-qwen:
+    enabled: true
+    
+    image: lmsysorg/sglang
+    tag: v0.3.5.post1
+    imagePullPolicy: IfNotPresent
+    
+    # Model aliases that clients can use
+    modelAlias:
+      - "qwen-2.5-7b"
+      - "qwen-2.5-7b-instruct"
+      - "Qwen/Qwen2.5-7B-Instruct"
+    
+    # Actual model to load
+    modelName: "Qwen/Qwen2.5-7B-Instruct"
+    
+    service:
+      type: ClusterIP
+      port: 30000
+    
+    containerPort: 30000
+    replicaCount: 1
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    # SGLang server command
+    command:
+      - "python"
+      - "-m"
+      - "sglang.launch_server"
+      - "--model-path"
+      - "Qwen/Qwen2.5-7B-Instruct"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "30000"
+      - "--mem-fraction-static"
+      - "0.85"
+      - "--context-length"
+      - "32768"
+      # Advanced SGLang features
+      - "--enable-flashinfer"
+      - "--disable-radix-cache"  # Enable for better memory efficiency
+      - "--schedule-policy"
+      - "lpm"  # Longest Prefix Match for better batching
+    
+    # Environment variables
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: SGLANG_LOG_LEVEL
+        value: "info"
+      - name: PYTHONUNBUFFERED
+        value: "1"
+      # Uncomment if using private models
+      # - name: HF_TOKEN
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: hf-secret
+      #       key: token
+    
+    # Health checks - SGLang uses TCP by default
+    livenessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 90
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    
+    readinessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 300
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 10
+    
+    # Resource requirements
+    resources:
+      requests:
+        memory: "12Gi"
+        cpu: "4"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "16Gi"
+    
+    # Persistent storage for model cache
+    persistentVolumes:
+      - name: model-cache
+        size: 50Gi
+        storageClass: ""  # Use default storage class
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /root/.cache
+    
+    # Security context
+    podSecurityContext:
+      runAsUser: 0  # Required for GPU access
+    
+    securityContext:
+      runAsNonRoot: false
+    
+    # Additional volumes for shared memory (required for multi-processing)
+    volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+    
+    volumeMounts:
+      - name: shm
+        mountPath: /dev/shm
+    
+    # Node selection for GPU nodes
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+    
+    # Tolerations for GPU nodes
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule

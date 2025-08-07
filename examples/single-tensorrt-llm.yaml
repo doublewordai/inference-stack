@@ -1,0 +1,169 @@
+# Example: Single TensorRT-LLM Model Deployment
+# This example shows how to deploy a model using NVIDIA TensorRT-LLM
+# TensorRT-LLM provides optimized inference for NVIDIA GPUs with compiled models
+
+# Model configuration
+modelGroups:
+  # TensorRT-LLM deployment for Mistral 7B
+  tensorrt-mistral:
+    enabled: true
+    
+    # NVIDIA Triton Inference Server with TensorRT-LLM backend
+    image: nvcr.io/nvidia/tritonserver
+    tag: 24.01-trtllm-python-py3
+    imagePullPolicy: IfNotPresent
+    
+    # Model aliases that clients can use
+    modelAlias:
+      - "mistral-7b"
+      - "mistral-7b-instruct"
+      - "mistralai/Mistral-7B-Instruct-v0.3"
+    
+    # Actual model to load (this would be the TensorRT-LLM compiled model)
+    modelName: "mistralai/Mistral-7B-Instruct-v0.3"
+    
+    service:
+      type: ClusterIP
+      port: 8001  # Triton default port
+    
+    containerPort: 8001
+    replicaCount: 1
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    # Triton server command
+    command:
+      - "tritonserver"
+      - "--model-repository=/models"
+      - "--allow-grpc=false"
+      - "--allow-http=true"
+      - "--allow-metrics=true"
+      - "--http-port=8001"
+      - "--metrics-port=8002"
+      - "--disable-auto-complete-config"
+      - "--backend-config=python,shm-default-byte-size=16777216"
+      - "--log-verbose=1"
+    
+    # Additional port for metrics
+    additionalPorts:
+      - name: metrics
+        containerPort: 8002
+        servicePort: 8002
+    
+    # Environment variables
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: NCCL_LAUNCH_MODE
+        value: "PARALLEL"
+      - name: TRITON_MODEL_REPO
+        value: "/models"
+      # TensorRT-LLM specific environment
+      - name: TENSORRT_LLM_LOG_LEVEL
+        value: "INFO"
+      - name: WORLD_SIZE
+        value: "1"
+    
+    # Health checks - Triton server health endpoint
+    livenessProbe:
+      enabled: true
+      type: http
+      path: /v2/health/live
+      initialDelaySeconds: 120  # TensorRT models take longer to load
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 3
+    
+    readinessProbe:
+      enabled: true
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 300
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 20  # Model compilation can take time
+    
+    # Resource requirements - TensorRT-LLM needs significant resources
+    resources:
+      requests:
+        memory: "20Gi"
+        cpu: "8"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "32Gi"
+    
+    # Persistent storage for TensorRT-LLM compiled models
+    persistentVolumes:
+      - name: model-storage
+        size: 100Gi  # Larger storage for compiled models
+        storageClass: "fast-ssd"  # Recommend fast storage for model loading
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /models
+    
+    # Security context
+    podSecurityContext:
+      runAsUser: 0  # Required for GPU access and model compilation
+    
+    securityContext:
+      runAsNonRoot: false
+      capabilities:
+        add:
+          - SYS_ADMIN  # May be needed for some NVIDIA driver features
+    
+    # Additional volumes for shared memory and temporary files
+    volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 4Gi
+      - name: tmp
+        emptyDir:
+          sizeLimit: 10Gi
+    
+    volumeMounts:
+      - name: shm
+        mountPath: /dev/shm
+      - name: tmp
+        mountPath: /tmp
+    
+    # Node selection for high-end GPU nodes
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+      # Optionally specify GPU type
+      # node.kubernetes.io/instance-type: "g5.xlarge"
+    
+    # Tolerations for GPU nodes
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+    
+    # Init container to prepare TensorRT-LLM model (example)
+    initContainers:
+      - name: model-converter
+        image: nvcr.io/nvidia/tensorrt_llm/devel:latest
+        command:
+          - "sh"
+          - "-c"
+          - |
+            echo "TensorRT-LLM model preparation would happen here"
+            echo "This would typically involve:"
+            echo "1. Downloading the base model"
+            echo "2. Converting to TensorRT-LLM format"
+            echo "3. Optimizing for target GPU"
+            mkdir -p /models/mistral_7b/1
+            # In practice, you'd run the TensorRT-LLM conversion scripts here
+        volumeMounts:
+          - name: model-data
+            mountPath: /models
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "4"

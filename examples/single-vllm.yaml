@@ -1,0 +1,153 @@
+# Example: Single vLLM Model Deployment
+# This example shows how to deploy a single model using vLLM engine
+
+# Onwards gateway configuration
+onwards:
+  replicaCount: 1
+  
+  image:
+    repository: ghcr.io/doublewordai/onwards
+    tag: "v0.3.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 80
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  
+  metrics:
+    enabled: true
+    port: 9090
+    prefix: onwards
+
+# Model configuration
+modelGroups:
+  # vLLM deployment for Llama 3.1 8B
+  vllm-llama:
+    enabled: true
+    
+    image: vllm/vllm-openai
+    tag: v0.6.4
+    imagePullPolicy: IfNotPresent
+    
+    # Model aliases that clients can use
+    modelAlias:
+      - "llama-3.1-8b"
+      - "llama-3.1-8b-instruct"
+      - "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    
+    # Actual model to load
+    modelName: "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    
+    service:
+      type: ClusterIP
+      port: 8000
+    
+    containerPort: 8000
+    replicaCount: 1
+    
+    # Update strategy for Deployment
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    
+    # vLLM server command
+    command:
+      - "vllm"
+      - "serve"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--model"
+      - "meta-llama/Meta-Llama-3.1-8B-Instruct"
+      - "--max-model-len"
+      - "8192"
+      - "--gpu-memory-utilization"
+      - "0.9"
+      - "--enable-prefix-caching"
+    
+    # Environment variables
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      - name: HF_HOME
+        value: /tmp
+      # Uncomment if using private models
+      # - name: HF_TOKEN
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: hf-secret
+      #       key: token
+    
+    # Health checks
+    livenessProbe:
+      enabled: true
+      type: http
+      path: /health
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    
+    readinessProbe:
+      enabled: true
+      type: http
+      path: /health
+      initialDelaySeconds: 300
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 10
+    
+    # Resource requirements
+    resources:
+      requests:
+        memory: "16Gi"
+        cpu: "4"
+        nvidia.com/gpu: "1"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "24Gi"
+    
+    # Persistent storage for model cache
+    persistentVolumes:
+      - name: model-cache
+        size: 50Gi
+        storageClass: ""  # Use default storage class
+        accessModes:
+          - ReadWriteOnce
+        mountPath: /root/.cache/huggingface
+    
+    # Security context
+    podSecurityContext:
+      runAsUser: 0  # Required for GPU access
+    
+    securityContext:
+      runAsNonRoot: false
+    
+    # Node selection for GPU nodes
+    nodeSelector:
+      nvidia.com/gpu.present: "true"
+    
+    # Tolerations for GPU nodes
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+
+# Disable ingress (use port-forward or LoadBalancer)
+ingress:
+  enabled: false
+
+# Enable ServiceMonitor for Prometheus monitoring
+serviceMonitor:
+  enabled: false

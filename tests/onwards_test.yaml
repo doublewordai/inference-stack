@@ -1,0 +1,120 @@
+suite: test onwards deployment
+templates:
+  - templates/deployment.yaml
+  - templates/service.yaml
+  - templates/configmap.yaml
+  - templates/serviceaccount.yaml
+tests:
+  - it: should render onwards deployment with default values
+    template: templates/deployment.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-onwards
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "ghcr.io/doublewordai/onwards:v0.3.0"
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 3000
+
+  - it: should render onwards service with default values
+    template: templates/service.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-onwards
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 80
+
+  - it: should create service account when enabled
+    template: templates/serviceaccount.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      onwards.serviceAccount.create: true
+    asserts:
+      - isKind:
+          of: ServiceAccount
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-onwards
+
+  - it: should not create service account when disabled
+    template: templates/serviceaccount.yaml
+    set:
+      onwards.serviceAccount.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render configmap with model groups config
+    template: templates/configmap.yaml
+    set:
+      modelGroups:
+        test-model:
+          enabled: true
+          service:
+            port: 8000
+          modelAlias:
+            - "test-model-1"
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-inference-stack-onwards
+      - isNotEmpty:
+          path: data["config.json"]
+
+  - it: should support custom image and tag
+    template: templates/deployment.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      onwards.image.repository: custom/onwards
+      onwards.image.tag: v1.0.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "custom/onwards:v1.0.0"
+
+  - it: should support resource limits
+    template: templates/deployment.yaml
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-inference-stack-onwards
+    set:
+      onwards.resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.limits.cpu
+          value: 500m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi

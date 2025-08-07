@@ -1,0 +1,67 @@
+suite: test ingress
+templates:
+  - templates/ingress.yaml
+tests:
+  - it: should render ingress when enabled
+    template: templates/ingress.yaml
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: inference.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.rules[0].host
+          value: inference.example.com
+
+  - it: should not render ingress when disabled
+    template: templates/ingress.yaml
+    set:
+      ingress:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should support TLS configuration
+    template: templates/ingress.yaml
+    set:
+      ingress:
+        enabled: true
+        tls:
+          - secretName: inference-tls
+            hosts:
+              - inference.example.com
+        hosts:
+          - host: inference.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: inference-tls
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: inference.example.com
+
+  - it: should support custom ingress class
+    template: templates/ingress.yaml
+    set:
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: inference.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx

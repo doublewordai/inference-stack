@@ -1,0 +1,518 @@
+# Default values for inference-stack.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Override the chart name used for resource naming
+nameOverride: ""
+# Override the full resource names (takes precedence over nameOverride)
+fullnameOverride: ""
+
+# Onwards Gateway Configuration
+# The Onwards gateway routes client requests to model groups based on model aliases
+onwards:
+  # Number of gateway replicas to deploy
+  replicaCount: 1
+
+  image:
+    # Docker image repository for the Onwards gateway
+    repository: ghcr.io/doublewordai/onwards
+    # Image pull policy (Always, IfNotPresent, Never)
+    pullPolicy: IfNotPresent
+    # Image tag override (defaults to chart appVersion if empty)
+    tag: "v0.3.0"
+
+  # Secrets for pulling private container images
+  imagePullSecrets: []
+
+  serviceAccount:
+    # Whether to create a service account for the gateway
+    create: true
+    # Additional annotations for the service account
+    annotations: {}
+    # Service account name (auto-generated if empty and create=true)
+    name: ""
+
+  # Additional annotations for gateway pods
+  podAnnotations: {}
+
+  # Security context for the entire pod
+  podSecurityContext:
+    fsGroup: 2000
+
+  # Security context for the gateway container
+  securityContext:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  service:
+    # Kubernetes service type (ClusterIP, NodePort, LoadBalancer)
+    type: ClusterIP
+    # External port for the service
+    port: 80
+    # nodePort: 30080  # Only used if type is NodePort
+
+  # Port that the Onwards container listens on
+  containerPort: 3000
+
+  # Environment variables for the gateway container
+  env:
+    []
+    # - name: RUST_LOG
+    #   value: "info"
+
+  # Additional volume mounts for the gateway container
+  volumeMounts: []
+
+  # Additional volumes for the gateway pod
+  volumes: []
+
+  # Resource requests and limits for the gateway
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+  # Node selector constraints for pod scheduling
+  nodeSelector: {}
+
+  # Tolerations for pod scheduling (e.g., to run on tainted nodes)
+  tolerations: []
+
+  # Affinity rules for pod scheduling
+  affinity: {}
+  
+  # Metrics configuration
+  metrics:
+    # Enable metrics endpoint
+    enabled: true
+    # Metrics port for the container
+    port: 9090
+    # Metrics prefix for prometheus
+    prefix: onwards
+    # Service configuration for metrics
+    service:
+      # Port for the metrics service endpoint
+      port: 9090
+  
+  # Probe configuration
+  probes:
+    # Health check path (used by both liveness and readiness)
+    path: /v1/models
+    liveness:
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      initialDelaySeconds: 5
+      periodSeconds: 5
+  
+  # LoadBalancer service configuration (for external access)
+  loadBalancer:
+    # Enable a separate LoadBalancer service
+    enabled: false
+    # Port for the LoadBalancer service
+    port: 80
+    # Annotations for the LoadBalancer service
+    annotations: {}
+      # helm.sh/resource-policy: keep
+      # service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  
+  # Additional command line arguments for onwards
+  extraArgs: []
+
+# Model Groups Configuration
+# Each model group represents a deployment of an inference engine (vLLM, SGLang, etc.)
+# that serves one or more models through an OpenAI-compatible API
+modelGroups:
+  # Example vLLM model group for Gemma 12B (disabled by default)
+  # Uncomment and modify this section to deploy your models
+  vllm-gemma:
+    # Whether to deploy this model group
+    enabled: false
+
+    # Docker image for the inference engine
+    image: vllm/vllm-openai
+    # Docker image tag
+    tag: latest
+    # Image pull policy (Always, IfNotPresent, Never)
+    imagePullPolicy: IfNotPresent
+
+    # Client-facing model aliases/names that can be used in API requests
+    # These names will appear in /v1/models and can be specified in the "model" field of requests
+    # The Onwards gateway routes requests with these names to this model group
+    modelAlias:
+      - "gemma-12b"
+      - "google/gemma-3-12b-it"
+
+    # The actual model name/path used by the inference engine (e.g., HuggingFace model path)
+    modelName: "google/gemma-3-12b-it"
+
+    # Optional API key for authenticating requests to this model group
+    apiKey: ""
+
+    service:
+      # Kubernetes service type for this model group
+      type: ClusterIP
+      # Service port for external access
+      port: 8000
+
+    # Port that the inference engine container listens on
+    containerPort: 8000
+
+    # Additional container ports (e.g., for metrics endpoints)
+    additionalPorts:
+      []
+      # - name: metrics
+      #   containerPort: 8001
+      #   servicePort: 8001
+
+    # Number of replicas to deploy for this model group
+    replicaCount: 1
+
+    # Update strategy for Deployments
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+
+    # Container command passed to the inference engine
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--model"
+      - "google/gemma-3-12b-it"
+      - "--dtype"
+      - "bfloat16"
+      # - "--tensor-parallel-size"
+      # - "1"
+      # - "--gpu-memory-utilization"
+      # - "0.9"
+
+    # Environment variables for the inference engine container
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+      # - name: HUGGING_FACE_HUB_TOKEN
+      #   valueFrom:
+      #     secretKeyRef:
+      #       name: hf-token
+      #       key: token
+
+    # Liveness probe configuration (checks if container is alive)
+    livenessProbe:
+      # Whether to enable liveness probes
+      enabled: true
+      # Probe type: 'http' for HTTP GET requests, 'tcp' for TCP socket checks
+      type: http
+      # HTTP path to check (only used for http type)
+      path: /health
+      # Delay before first probe after container starts
+      initialDelaySeconds: 60
+      # How often to perform the probe
+      periodSeconds: 10
+      # Timeout for each probe
+      timeoutSeconds: 5
+      # Number of failures before considering the container dead
+      failureThreshold: 3
+
+    # Readiness probe configuration (checks if container is ready to serve traffic)
+    readinessProbe:
+      # Whether to enable readiness probes
+      enabled: true
+      # Probe type: 'http' for HTTP GET requests, 'tcp' for TCP socket checks
+      type: http
+      # HTTP path to check (only used for http type)
+      path: /health
+      # Delay before first probe after container starts
+      initialDelaySeconds: 300
+      # How often to perform the probe
+      periodSeconds: 5
+      # Timeout for each probe
+      timeoutSeconds: 3
+      # Number of failures before considering the container not ready
+      failureThreshold: 3
+
+    # Resource requests and limits for this model group
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+        memory: 16Gi
+      requests:
+        nvidia.com/gpu: 1
+        memory: 8Gi
+
+    # Persistent volumes configuration
+    # Creates PVCs and mounts them in Deployment pods  
+    persistentVolumes: []
+      # Example single volume:
+      # - name: model-cache
+      #   size: 100Gi
+      #   mountPath: /root/.cache/huggingface
+      #   storageClass: ""  # empty string uses default
+      #   accessModes:
+      #     - ReadWriteOnce
+      #
+      # Example multiple volumes:
+      # - name: model-cache
+      #   size: 100Gi
+      #   mountPath: /root/.cache/huggingface
+      #   accessModes:
+      #     - ReadWriteOnce
+      # - name: model-weights
+      #   size: 200Gi
+      #   mountPath: /models
+      #   storageClass: fast-ssd
+      #   accessModes:
+      #     - ReadWriteOnce
+
+    # Security context for the entire pod
+    podSecurityContext:
+      runAsUser: 0 # Often needed for GPU access
+
+    # Security context for the container
+    securityContext: {}
+
+    serviceAccount:
+      # Whether to create a service account for this model group
+      create: false
+      # Additional annotations for the service account
+      annotations: {}
+
+    # Init containers for setup tasks (e.g., model downloading)
+    initContainers: []
+
+    # Additional volume mounts for the container
+    volumeMounts: []
+
+    # Additional volumes for the pod
+    volumes: []
+
+    # Node selection constraints (e.g., GPU node requirements)
+    nodeSelector:
+      {}
+      # kubernetes.io/arch: amd64
+      # nvidia.com/gpu.present: "true"
+
+    # Tolerations for scheduling on tainted nodes (e.g., GPU nodes)
+    tolerations:
+      []
+      # - key: nvidia.com/gpu
+      #   operator: Exists
+      #   effect: NoSchedule
+
+    # Affinity rules for advanced pod scheduling
+    affinity: {}
+
+    # Additional annotations for pods
+    podAnnotations: {}
+
+    # Secrets for pulling private container images
+    imagePullSecrets: []
+
+  # Example SGLang model group (disabled by default)
+  # Uncomment and modify to use SGLang inference engine
+  sglang-qwen:
+    # Whether to deploy this model group
+    enabled: false
+
+    # Docker image for SGLang inference engine
+    image: lmsysorg/sglang
+    # Docker image tag
+    tag: latest
+    # Image pull policy
+    imagePullPolicy: IfNotPresent
+
+    # Client-facing model aliases for API requests
+    modelAlias:
+      - "qwen-2.5-7b"
+      - "qwen-2.5-7b-instruct"
+
+    # Actual model path used by SGLang
+    modelName: "Qwen/Qwen2.5-7B-Instruct"
+
+    service:
+      # Service type for this model group
+      type: ClusterIP
+      # Service port
+      port: 30000
+
+    # Container port for SGLang server
+    containerPort: 30000
+
+    # Number of replicas
+    replicaCount: 1
+
+    # Update strategy for Deployments
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+
+    # Command for SGLang server
+    command:
+      - "python"
+      - "-m"
+      - "sglang.launch_server"
+      - "--model-path"
+      - "Qwen/Qwen2.5-7B-Instruct"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "30000"
+
+    # Environment variables
+    env:
+      - name: CUDA_VISIBLE_DEVICES
+        value: "0"
+
+    # Liveness probe (using TCP since SGLang may not have HTTP health endpoint)
+    livenessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 60
+      periodSeconds: 10
+
+    # Readiness probe
+    readinessProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 300
+      periodSeconds: 5
+
+    # Resource requirements
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+        memory: 12Gi
+      requests:
+        nvidia.com/gpu: 1
+        memory: 6Gi
+
+    # Node selection, tolerations, and affinity
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+  # Example TensorRT-LLM model group (disabled by default)
+  # Uncomment and modify to use NVIDIA TensorRT-LLM
+  tensorrt-llm-mistral:
+    # Whether to deploy this model group
+    enabled: false
+
+    # NVIDIA Triton server with TensorRT-LLM support
+    image: nvcr.io/nvidia/tritonserver
+    # Container image tag
+    tag: 24.01-trtllm-python-py3
+
+    # Image pull policy
+    imagePullPolicy: IfNotPresent
+
+    # Client-facing model aliases
+    modelAlias:
+      - "mistral-7b"
+      - "mistral-7b-instruct"
+
+    # Actual model used by TensorRT-LLM
+    modelName: "mistralai/Mistral-7B-Instruct-v0.2"
+
+    service:
+      # Service type
+      type: ClusterIP
+      # Service port
+      port: 8001
+
+    # Container port
+    containerPort: 8001
+
+    # Number of replicas
+    replicaCount: 1
+
+    # Update strategy for Deployments
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+
+    # Resource requirements (TensorRT typically needs significant GPU memory)
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+        memory: 16Gi
+      requests:
+        nvidia.com/gpu: 1
+        memory: 8Gi
+
+    # Scheduling constraints
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# Ingress configuration for external access to Onwards gateway
+ingress:
+  # Whether to create an ingress resource for external access
+  enabled: false
+  # Ingress class name (e.g., nginx, traefik)
+  className: ""
+  # Additional annotations for the ingress resource
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  # Host configuration for the ingress
+  hosts:
+    - host: inference.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # TLS configuration for HTTPS
+  tls: []
+  #  - secretName: inference-tls
+  #    hosts:
+  #      - inference.local
+
+# ServiceMonitor for Prometheus monitoring (requires Prometheus Operator)
+serviceMonitor:
+  # Whether to create a ServiceMonitor resource for Prometheus scraping
+  enabled: false
+  # Namespace where the ServiceMonitor should be created (empty = same as release)
+  namespace: ""
+  # Additional labels for the ServiceMonitor (useful for Prometheus discovery)
+  labels: {}
+    # prometheus: kube-prometheus
+    # release: prometheus-operator
+  # Additional annotations for the ServiceMonitor
+  annotations: {}
+  # How often Prometheus should scrape metrics
+  interval: 30s
+  # Timeout for each scrape attempt
+  scrapeTimeout: 10s
+  # TLS configuration for secure metrics scraping
+  tlsConfig: {}
+    # insecureSkipVerify: true
+  # Bearer token secret for authentication
+  bearerTokenSecret: {}
+    # name: prometheus-bearer-token
+    # key: token

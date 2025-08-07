@@ -1,0 +1,96 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  package-and-push:
+    needs: release-please
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.releases_created }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.13.0'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package Helm Chart
+        run: |
+          # Update Chart.yaml version to match the release
+          TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
+          VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
+          
+          # Update Chart.yaml with the new version
+          sed -i "s/^version:.*/version: ${VERSION}/" Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" Chart.yaml
+          
+          # Package the chart
+          helm package . --destination ./packaged-charts/
+          
+          # Get the packaged chart name
+          CHART_PACKAGE=$(ls ./packaged-charts/*.tgz | head -1)
+          echo "CHART_PACKAGE=${CHART_PACKAGE}" >> $GITHUB_ENV
+
+      - name: Create Dockerfile for Helm Chart
+        run: |
+          cat > Dockerfile << 'EOF'
+          FROM scratch
+          COPY packaged-charts/*.tgz /charts/
+          EOF
+
+      - name: Build and Push Chart Container
+        run: |
+          TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
+          VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
+          
+          # Build and push the container with the chart
+          docker build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/${{ github.repository }}:${VERSION} \
+            -t ghcr.io/${{ github.repository }}:latest \
+            --push \
+            .
+
+      - name: Update GitHub Container Registry with Chart
+        run: |
+          TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
+          VERSION=${TAG_NAME#v}  # Remove 'v' prefix if present
+          
+          # Push to GitHub Container Registry as OCI artifact
+          helm push ./packaged-charts/*.tgz oci://ghcr.io/${{ github.repository_owner }} || true
+          
+          echo "✅ Helm chart packaged and pushed to:"
+          echo "   - Container: ghcr.io/${{ github.repository }}:${VERSION}"
+          echo "   - OCI: oci://ghcr.io/${{ github.repository_owner }}/$(basename ./packaged-charts/*.tgz .tgz)"

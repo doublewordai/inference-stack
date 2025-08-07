@@ -1,0 +1,83 @@
+# Onwards Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inference-stack.fullname" . }}-onwards
+  labels:
+    {{- include "inference-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onwards
+spec:
+  type: {{ .Values.onwards.service.type }}
+  ports:
+    - port: {{ .Values.onwards.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if and (eq .Values.onwards.service.type "NodePort") .Values.onwards.service.nodePort }}
+      nodePort: {{ .Values.onwards.service.nodePort }}
+      {{- end }}
+    {{- if .Values.onwards.metrics.enabled }}
+    - port: {{ .Values.onwards.metrics.service.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+  selector:
+    {{- include "inference-stack.onwards.selectorLabels" . | nindent 4 }}
+
+{{- if .Values.onwards.loadBalancer.enabled }}
+---
+# Onwards Gateway LoadBalancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inference-stack.fullname" . }}-onwards-loadbalancer
+  labels:
+    {{- include "inference-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onwards
+  {{- with .Values.onwards.loadBalancer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: LoadBalancer
+  ports:
+    - port: {{ .Values.onwards.loadBalancer.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "inference-stack.onwards.selectorLabels" . | nindent 4 }}
+{{- end }}
+
+---
+# Model Group Services
+{{- range $groupName, $group := .Values.modelGroups }}
+{{- if $group.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}
+  labels:
+    {{- include "inference-stack.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: model-group
+    app.kubernetes.io/model-group: {{ $groupName }}
+spec:
+  type: {{ $group.service.type }}
+  ports:
+    - port: {{ $group.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    {{- range $group.additionalPorts }}
+    - port: {{ .servicePort | default .containerPort }}
+      targetPort: {{ .name }}
+      protocol: {{ .protocol | default "TCP" }}
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "inference-stack.modelGroup.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/model-group: {{ $groupName }}
+{{- end }}
+{{- end }}
