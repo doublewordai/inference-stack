@@ -1,4 +1,4 @@
-# Inference Stack Helm Chart
+# Inference Stack
 
 A comprehensive Helm chart for deploying production grade LLMs.
 
