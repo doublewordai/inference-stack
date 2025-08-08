@@ -162,7 +162,7 @@ modelGroups:
     # The actual model name/path used by the inference engine (e.g., HuggingFace model path)
     modelName: "google/gemma-3-12b-it"
 
-    # Optional API key for authenticating requests to this model group
+    # Optional Downstream API key for authenticating requests to this model group once they are in the inference engine
     apiKey: ""
 
     service:
@@ -578,6 +578,78 @@ ingress:
   #  - secretName: inference-tls
   #    hosts:
   #      - inference.local
+
+# NetworkPolicy configuration for network segmentation and security
+networkPolicy:
+  # Whether to create NetworkPolicy resources
+  enabled: false
+  
+  # Onwards gateway NetworkPolicy spec (directly passed to Kubernetes NetworkPolicy spec after podSelector)
+  # This is the standard Kubernetes NetworkPolicy spec, see: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+  onwards: {}
+    # Example: Allow ingress from specific pods and egress to model groups
+    # policyTypes:
+    #   - Ingress
+    #   - Egress
+    # ingress:
+    #   - from:
+    #     - podSelector:
+    #         matchLabels:
+    #           app: frontend
+    #     ports:
+    #     - protocol: TCP
+    #       port: 3000
+    # egress:
+    #   - to:
+    #     - podSelector:
+    #         matchLabels:
+    #           app.kubernetes.io/component: model-group
+    #     ports:
+    #     - protocol: TCP
+    #       port: 8000
+    #   # DNS resolution
+    #   - to:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           name: kube-system
+    #     ports:
+    #     - protocol: UDP
+    #       port: 53
+  
+  # Model group NetworkPolicy specs (directly passed to Kubernetes NetworkPolicy spec after podSelector)
+  # Define a NetworkPolicy for each model group by name
+  modelGroups: {}
+    # Example for vllm-gemma model group:
+    # vllm-gemma:
+    #   policyTypes:
+    #     - Ingress
+    #     - Egress
+    #   ingress:
+    #     - from:
+    #       - podSelector:
+    #           matchLabels:
+    #             app.kubernetes.io/component: onwards
+    #       ports:
+    #       - protocol: TCP
+    #         port: 8000
+    #   egress:
+    #     # DNS resolution
+    #     - to:
+    #       - namespaceSelector:
+    #           matchLabels:
+    #             name: kube-system
+    #       ports:
+    #       - protocol: UDP
+    #         port: 53
+    #     # Model downloads
+    #     - to:
+    #       - ipBlock:
+    #           cidr: 0.0.0.0/0
+    #           except:
+    #           - 169.254.169.254/32
+    #       ports:
+    #       - protocol: TCP
+    #         port: 443
 
 # ServiceMonitor for Prometheus monitoring (requires Prometheus Operator)
 serviceMonitor:

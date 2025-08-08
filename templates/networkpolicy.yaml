@@ -1,0 +1,46 @@
+{{- if .Values.networkPolicy.enabled }}
+---
+# Onwards Gateway NetworkPolicy
+{{- if .Values.networkPolicy.onwards }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "inference-stack.fullname" . }}-onwards
+  labels:
+    {{- include "inference-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: onwards
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "inference-stack.onwards.selectorLabels" . | nindent 6 }}
+  {{- with .Values.networkPolicy.onwards }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}
+
+---
+# Model Group NetworkPolicies
+{{- range $groupName, $group := .Values.modelGroups }}
+{{- if $group.enabled }}
+{{- if index $.Values.networkPolicy.modelGroups $groupName }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}
+  labels:
+    {{- include "inference-stack.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: model-group
+    app.kubernetes.io/model-group: {{ $groupName }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "inference-stack.modelGroup.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/model-group: {{ $groupName }}
+  {{- with index $.Values.networkPolicy.modelGroups $groupName }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
