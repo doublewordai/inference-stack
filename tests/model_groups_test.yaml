@@ -15,9 +15,10 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
-          image: vllm/vllm-openai
-          tag: latest
-          imagePullPolicy: IfNotPresent
+          image:
+            repository: vllm/vllm-openai
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 8000
@@ -94,9 +95,17 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
+          image:
+            repository: nginx
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 8000
+          containerPort: 8000
+          replicaCount: 1
+          modelAlias: ["test"]
+          modelName: "test"
           additionalPorts: []
           persistentVolumes: []
           serviceAccount:
@@ -132,6 +141,10 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
+          image:
+            repository: nginx
+            tag: "latest"
+            pullPolicy: IfNotPresent
           persistentVolumes:
             - name: test-data
               size: 100Gi
@@ -142,6 +155,10 @@ tests:
           service:
             type: ClusterIP
             port: 8000
+          containerPort: 8000
+          replicaCount: 1
+          modelAlias: ["test"]
+          modelName: "test"
           additionalPorts: []
           serviceAccount:
             create: false
@@ -173,10 +190,18 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
+          image:
+            repository: nginx
+            tag: "latest"
+            pullPolicy: IfNotPresent
           persistentVolumes: []
           service:
             type: ClusterIP
             port: 8000
+          containerPort: 8000
+          replicaCount: 1
+          modelAlias: ["test"]
+          modelName: "test"
           additionalPorts: []
           serviceAccount:
             create: false
@@ -205,9 +230,10 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
-          image: vllm/vllm-openai
-          tag: latest
-          imagePullPolicy: IfNotPresent
+          image:
+            repository: vllm/vllm-openai
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 8000
@@ -270,9 +296,10 @@ tests:
           enabled: false
         test-vllm:
           enabled: true
-          image: vllm/vllm-openai
-          tag: latest
-          imagePullPolicy: IfNotPresent
+          image:
+            repository: vllm/vllm-openai
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 8000

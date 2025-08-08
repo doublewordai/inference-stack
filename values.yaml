@@ -19,7 +19,7 @@ onwards:
     # Image pull policy (Always, IfNotPresent, Never)
     pullPolicy: IfNotPresent
     # Image tag override (defaults to chart appVersion if empty)
-    tag: "v0.3.0"
+    tag: ""
 
   # Secrets for pulling private container images
   imagePullSecrets: []
@@ -146,12 +146,11 @@ modelGroups:
     # Whether to deploy this model group
     enabled: false
 
-    # Docker image for the inference engine
-    image: vllm/vllm-openai
-    # Docker image tag
-    tag: latest
-    # Image pull policy (Always, IfNotPresent, Never)
-    imagePullPolicy: IfNotPresent
+    # Docker image configuration
+    image:
+      repository: vllm/vllm-openai
+      tag: "latest"
+      pullPolicy: IfNotPresent
 
     # Client-facing model aliases/names that can be used in API requests
     # These names will appear in /v1/models and can be specified in the "model" field of requests
@@ -337,12 +336,11 @@ modelGroups:
     # Whether to deploy this model group
     enabled: false
 
-    # Docker image for SGLang inference engine
-    image: lmsysorg/sglang
-    # Docker image tag
-    tag: latest
-    # Image pull policy
-    imagePullPolicy: IfNotPresent
+    # Docker image configuration
+    image:
+      repository: lmsysorg/sglang
+      tag: "latest"
+      pullPolicy: IfNotPresent
 
     # Client-facing model aliases for API requests
     modelAlias:
@@ -454,13 +452,11 @@ modelGroups:
     # Whether to deploy this model group
     enabled: false
 
-    # NVIDIA Triton server with TensorRT-LLM support
-    image: nvcr.io/nvidia/tritonserver
-    # Container image tag
-    tag: 24.01-trtllm-python-py3
-
-    # Image pull policy
-    imagePullPolicy: IfNotPresent
+    # Docker image configuration
+    image:
+      repository: nvcr.io/nvidia/tritonserver
+      tag: "24.01-trtllm-python-py3"
+      pullPolicy: IfNotPresent
 
     # Client-facing model aliases
     modelAlias:

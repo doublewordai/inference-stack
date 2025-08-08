@@ -148,8 +148,8 @@ spec:
         - name: {{ $groupName }}
           securityContext:
             {{- toYaml $group.securityContext | nindent 12 }}
-          image: "{{ $group.image }}:{{ $group.tag }}"
-          imagePullPolicy: {{ $group.imagePullPolicy }}
+          image: "{{ $group.image.repository }}:{{ $group.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $group.image.pullPolicy }}
           {{- if $group.command }}
           command:
             {{- toYaml $group.command | nindent 12 }}

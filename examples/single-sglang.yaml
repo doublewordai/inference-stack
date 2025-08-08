@@ -8,9 +8,10 @@ modelGroups:
   sglang-qwen:
     enabled: true
     
-    image: lmsysorg/sglang
-    tag: v0.3.5.post1
-    imagePullPolicy: IfNotPresent
+    image:
+      repository: lmsysorg/sglang
+      tag: "v0.3.5.post1"
+      pullPolicy: IfNotPresent
     
     # Model aliases that clients can use
     modelAlias:

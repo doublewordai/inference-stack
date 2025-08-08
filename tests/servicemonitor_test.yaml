@@ -57,9 +57,17 @@ tests:
           enabled: false
         test-model:
           enabled: true
+          image:
+            repository: nginx
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 8000
+          containerPort: 8000
+          replicaCount: 1
+          modelAlias: ["test"]
+          modelName: "test"
           additionalPorts: []
           persistentVolumes: []
           serviceAccount:

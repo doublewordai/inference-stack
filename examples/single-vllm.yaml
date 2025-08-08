@@ -33,9 +33,10 @@ modelGroups:
   vllm-llama:
     enabled: true
     
-    image: vllm/vllm-openai
-    tag: v0.6.4
-    imagePullPolicy: IfNotPresent
+    image:
+      repository: vllm/vllm-openai
+      tag: "v0.6.4"
+      pullPolicy: IfNotPresent
     
     # Model aliases that clients can use
     modelAlias:

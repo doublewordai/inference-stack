@@ -21,7 +21,7 @@ tests:
           value: 1
       - equal:
           path: spec.template.spec.containers[0].image
-          value: "ghcr.io/doublewordai/onwards:v0.3.0"
+          value: "ghcr.io/doublewordai/onwards:latest"
       - equal:
           path: spec.template.spec.containers[0].ports[0].containerPort
           value: 3000
@@ -72,8 +72,15 @@ tests:
       modelGroups:
         test-model:
           enabled: true
+          image:
+            repository: nginx
+            tag: "latest"
+            pullPolicy: IfNotPresent
           service:
             port: 8000
+          containerPort: 8000
+          replicaCount: 1
+          modelName: "test"
           modelAlias:
             - "test-model-1"
     asserts:
