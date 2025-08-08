@@ -2,7 +2,13 @@ name: Publish Helm Chart
 
 on:
   release:
-    types: [published, created, released]
+    types: [published, created, released, prereleased]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g., v0.2.0)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,10 +23,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Extract version from release tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          # Verify we have a tag
+          if [ -z "$TAG" ]; then
+            echo "Error: No tag found"
+            exit 1
+          fi
+          
+          # Remove 'v' prefix if present
+          VERSION="${TAG#v}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Publishing Helm chart version: ${VERSION}"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
