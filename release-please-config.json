@@ -1,4 +1,9 @@
 {
-  "release-type": "helm",
-  "include-component-in-tag": false
+  "packages": {
+    ".": {
+      "release-type": "helm",
+      "package-name": "inference-stack",
+      "include-component-in-tag": false
+    }
+  }
 }
