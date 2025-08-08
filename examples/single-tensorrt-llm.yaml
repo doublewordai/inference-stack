@@ -74,7 +74,7 @@ modelGroups:
       enabled: true
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 120  # TensorRT models take longer to load
+      initialDelaySeconds: 300  # TensorRT models take longer to load
       periodSeconds: 15
       timeoutSeconds: 10
       failureThreshold: 3

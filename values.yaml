@@ -226,7 +226,7 @@ modelGroups:
       # HTTP path to check (only used for http type)
       path: /health
       # Delay before first probe after container starts
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       # How often to perform the probe
       periodSeconds: 10
       # Timeout for each probe
@@ -392,7 +392,7 @@ modelGroups:
     livenessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
 
     # Readiness probe
@@ -500,7 +500,7 @@ modelGroups:
       enabled: false
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 120
+      initialDelaySeconds: 300
       periodSeconds: 15
     
     # Readiness probe
@@ -508,7 +508,7 @@ modelGroups:
       enabled: false
       type: http
       path: /v2/health/ready
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
     
     # Resource requirements (TensorRT typically needs significant GPU memory)

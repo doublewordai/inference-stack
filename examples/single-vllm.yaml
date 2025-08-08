@@ -94,7 +94,7 @@ modelGroups:
       enabled: true
       type: http
       path: /health
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
       timeoutSeconds: 5
       failureThreshold: 3

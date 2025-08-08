@@ -65,7 +65,7 @@ modelGroups:
       enabled: true
       type: http
       path: /health
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
     
     readinessProbe:
@@ -158,7 +158,7 @@ modelGroups:
     livenessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 60
+      initialDelaySeconds: 300
       periodSeconds: 10
     
     readinessProbe:
@@ -255,7 +255,7 @@ modelGroups:
       enabled: true
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 180
+      initialDelaySeconds: 300
       periodSeconds: 15
     
     readinessProbe:
