@@ -8,13 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0](https://github.com/doublewordai/inference-stack/compare/v0.1.0...v0.1.0) (2025-08-08)
 
 
-### Miscellaneous
-
-* trigger release please ([0514e29](https://github.com/doublewordai/inference-stack/commit/0514e29e4f274816544dc49151ca3203e37269fc))
-
-## [0.1.0](https://github.com/doublewordai/inference-stack/compare/v0.1.0...v0.1.0) (2025-08-08)
-
-
 ### Features
 
 * v0.1.0 release of inference-stack chart ([aecded8](https://github.com/doublewordai/inference-stack/commit/aecded852160b6626e6927bb6fca5ee2d2cd26ef))
@@ -29,3 +22,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * increase default initialDelaySeconds for health checks ([2c6a042](https://github.com/doublewordai/inference-stack/commit/2c6a042d4186b73b4b3072584839eab5a3068444))
 * separate helm release from release please ([1b4e4b6](https://github.com/doublewordai/inference-stack/commit/1b4e4b6172acfbe1575419ba0ee28a06b9f75edd))
+* trigger release please ([0514e29](https://github.com/doublewordai/inference-stack/commit/0514e29e4f274816544dc49151ca3203e37269fc))
