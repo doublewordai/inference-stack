@@ -263,6 +263,9 @@ modelGroups:
     # Persistent volumes configuration
     # Creates PVCs and mounts them in Deployment pods  
     persistentVolumes: []
+    
+    # Additional container ports
+    additionalPorts: []
       # Example single volume:
       # - name: model-cache
       #   size: 100Gi
@@ -407,6 +410,38 @@ modelGroups:
       requests:
         nvidia.com/gpu: 1
         memory: 6Gi
+    
+    # Persistent volumes configuration
+    persistentVolumes: []
+    
+    # Additional container ports
+    additionalPorts: []
+    
+    # Security context for the entire pod
+    podSecurityContext: {}
+    
+    # Security context for the container
+    securityContext: {}
+    
+    serviceAccount:
+      # Whether to create a service account
+      create: false
+      annotations: {}
+    
+    # Init containers
+    initContainers: []
+    
+    # Additional volume mounts
+    volumeMounts: []
+    
+    # Additional volumes
+    volumes: []
+    
+    # Pod annotations
+    podAnnotations: {}
+    
+    # Image pull secrets
+    imagePullSecrets: []
 
     # Node selection, tolerations, and affinity
     nodeSelector: {}
@@ -454,6 +489,28 @@ modelGroups:
         maxSurge: 1
         maxUnavailable: 0
 
+    # Command for TensorRT-LLM
+    command: []
+    
+    # Environment variables
+    env: []
+    
+    # Liveness probe
+    livenessProbe:
+      enabled: false
+      type: http
+      path: /v2/health/live
+      initialDelaySeconds: 120
+      periodSeconds: 15
+    
+    # Readiness probe
+    readinessProbe:
+      enabled: false
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 60
+      periodSeconds: 10
+    
     # Resource requirements (TensorRT typically needs significant GPU memory)
     resources:
       limits:
@@ -462,11 +519,44 @@ modelGroups:
       requests:
         nvidia.com/gpu: 1
         memory: 8Gi
+    
+    # Persistent volumes configuration
+    persistentVolumes: []
+    
+    # Security context for the entire pod
+    podSecurityContext: {}
+    
+    # Security context for the container
+    securityContext: {}
+    
+    serviceAccount:
+      # Whether to create a service account for this model group
+      create: false
+      # Additional annotations for the service account
+      annotations: {}
+    
+    # Init containers for setup tasks
+    initContainers: []
+    
+    # Additional volume mounts for the container
+    volumeMounts: []
+    
+    # Additional volumes for the pod
+    volumes: []
 
     # Scheduling constraints
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    
+    # Additional annotations for pods
+    podAnnotations: {}
+    
+    # Secrets for pulling private container images
+    imagePullSecrets: []
+    
+    # Additional container ports
+    additionalPorts: []
 
 # Ingress configuration for external access to Onwards gateway
 ingress:

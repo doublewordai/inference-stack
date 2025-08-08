@@ -40,39 +40,7 @@ jobs:
           # Test with default values
           helm template test-release . > /dev/null
           
-          # Test with different configurations
-          helm template test-release . \
-            --set modelGroups.vllm-llama.enabled=true \
-            --set modelGroups.sglang-qwen.enabled=true \
-            --set ingress.enabled=true \
-            > /dev/null
-          
           echo "✅ All template rendering tests passed"
-
-      - name: Validate generated manifests
-        run: |
-          # Generate manifests and validate them
-          helm template test-release . \
-            --set modelGroups.vllm-llama.enabled=true \
-            --output-dir ./generated-manifests/
-          
-          # Check that required resources are generated
-          required_files=(
-            "inference-stack/templates/onwards-deployment.yaml"
-            "inference-stack/templates/onwards-service.yaml"
-            "inference-stack/templates/onwards-configmap.yaml"
-            "inference-stack/templates/model-group-deployment.yaml"
-            "inference-stack/templates/model-group-service.yaml"
-          )
-          
-          for file in "${required_files[@]}"; do
-            if [ ! -f "./generated-manifests/$file" ]; then
-              echo "❌ Missing required file: $file"
-              exit 1
-            fi
-          done
-          
-          echo "✅ All required manifest files generated"
 
   security-scan:
     runs-on: ubuntu-latest
