@@ -22,33 +22,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * increase default initialDelaySeconds for health checks ([2c6a042](https://github.com/doublewordai/inference-stack/commit/2c6a042d4186b73b4b3072584839eab5a3068444))
 * separate helm release from release please ([1b4e4b6](https://github.com/doublewordai/inference-stack/commit/1b4e4b6172acfbe1575419ba0ee28a06b9f75edd))
-
-## [Unreleased]
-
-## [0.1.0] - 07-08-2025
-
-### Added
-
-- Initial release of the Inference Stack Helm Chart
-- Support for Onwards AI Gateway deployment
-- Configurable model groups for multiple inference engines
-- Support for vLLM, SGLang, and TensorRT-LLM
-- Auto-scaling with Horizontal Pod Autoscaler
-- Persistent storage for model caching
-- Ingress support for external access
-- Comprehensive unit tests with helm-unittest
-- CI/CD pipeline with GitHub Actions
-- Automated releases with release-please
-- Security scanning with Checkov
-- Helm chart linting and validation
-
-### Features
-
-- **Multi-engine Support**: Deploy multiple inference engines simultaneously
-- **Transparent Routing**: Human-readable model names mapped to backend services  
-- **GPU Support**: Full GPU resource management and node selection
-- **Production Ready**: Health checks, resource limits, security contexts
-- **Monitoring**: Prometheus metrics and observability support
-
-[Unreleased]: https://github.com/your-org/inference-stack/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/your-org/inference-stack/releases/tag/v0.1.0
