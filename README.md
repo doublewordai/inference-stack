@@ -1,21 +1,35 @@
-# Inference Stack
+# Doubleword Inference Stack
 
-A comprehensive Helm chart for deploying production grade LLMs.
+A comprehensive Helm chart for deploying production grade LLMs. This stack is a lightweight, transparent framework to allow you to deploy any model on any inference engine with minimal configuration. It is designed to be flexible, allowing you to easily switch between different models and inference engines without changing your client code.
+
+The spirit of this project is to produce a framework that solves distributed serving of LLMs in a non-specific way to the inference engine running the weights.
 
 We achieve this by deploying the [Onwards AI Gateway](https://github.com/doublewordai/onwards) with configurable LLM model groups. This chart provides a transparent, unified interface for routing requests to multiple inference engines like vLLM, SGLang, TensorRT-LLM, and others. It also allows you to set human readable model names that map to backend services, making it easy to switch between models without changing client code.
 
-## Features
+If you want to go beyond what's available here for high-throughput deployments, [contact us](https://www.doubleword.ai/contact) at <hello@doubleword.ai>.
 
-- **🚀 Onwards Gateway**: Routes requests to multiple LLM backends with human-readable model names
-- **🔧 Configurable Model Groups**: Support for vLLM, SGLang, TensorRT-LLM, and any OpenAI-compatible API
-- **🔄 Rolling Updates**: Zero-downtime deployments with configurable update strategies
-- **💾 Persistent Storage**: Flexible persistent volume support for model caching
-- **🔐 Security**: Pod security contexts and service account configuration
-- **📈 Monitoring**: Prometheus metrics support and health checks
-- **🌐 Ingress**: Optional ingress controller support for external access
-- **✅ Production Ready**: Comprehensive testing, linting, and CI/CD pipeline
+## Architecture Overview
 
-## Quick Start
+<div align="center">
+<img src="./Inference%20Stack%20Architecture.png" alt="Architecture Diagram" width="600">
+</div>
+
+The stack consists of:
+
+- **Onwards Gateway**: The API gateway that routes requests to different inference engines.
+- **Model Groups**: A grouping of kubernetes resources that represent a deployment of an inference engine. Each model group can only have one active model at a time, but can have custom numbers of replicas.
+- **Inference Engines**: Backend services like vLLM, SGLang, TensorRT-LLM that handle the actual inference requests.
+
+## Roadmap
+
+We are actively developing this stack to support sophisticated LLM deployments. See our [issues](https://github.com/doublewordai/inference-stack/issues) for the latest features and improvements. Some key features we are working on include:
+
+- **Model Group Prefix Aware Routing**: <https://github.com/doublewordai/inference-stack/issues/4>
+- **More complicated model group configurations**, such as dynamo: <https://github.com/doublewordai/inference-stack/issues/5>
+- **AutoScaling**: dynamic: <https://github.com/doublewordai/inference-stack/issues/6> and scale to zero: <https://github.com/doublewordai/inference-stack/issues/7>
+- **Inference Engine Support**: Adding example and support for more inference engines, please [open an issue](https://github.com/doublewordai/inference-stack/issues/new) to request specific engines.
+
+## Getting Started
 
 ### Install from OCI Registry
 
@@ -40,8 +54,6 @@ helm install my-inference-stack .
 # Or install with custom values
 helm install my-inference-stack . -f my-values.yaml
 ```
-
-## Configuration
 
 ### Basic Configuration
 
@@ -165,110 +177,16 @@ ingress:
         - inference.example.com
 ```
 
-## Architecture
-
-This Helm chart creates a scalable inference stack with the following components:
-
-- **Onwards Gateway**: Routes API requests to appropriate model groups based on model aliases
-- **Model Group Deployments**: Each enabled model group creates a Kubernetes Deployment
-- **Persistent Volume Claims**: Optional storage for model caching (automatic PVC creation)
-- **Services**: Each component gets its own ClusterIP service for internal communication
-- **ConfigMaps**: Automatic generation of Onwards routing configuration
-
-### Deployment Strategy
-
-All model groups use **Kubernetes Deployments** (not StatefulSets) with configurable rolling update strategies for:
-
-- ✅ **Zero-downtime updates** with blue-green deployment patterns
-- ✅ **Faster scaling** and pod replacement
-- ✅ **Better resource utilization** with flexible pod scheduling
-- ✅ **Persistent storage** via automatically created PVCs
-
-## Supported Inference Engines
-
-### vLLM
-
-```yaml
-modelGroups:
-  vllm-model:
-    enabled: true
-    image: vllm/vllm-openai
-    tag: latest
-    modelAlias:
-      - "llama-3.1-8b"
-    containerPort: 8000
-    command:
-      - "vllm"
-      - "serve"
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "8000"
-      - "--model"
-      - "meta-llama/Meta-Llama-3.1-8B-Instruct"
-      - "--tensor-parallel-size"
-      - "1"
-```
-
-### SGLang
-
-```yaml
-modelGroups:
-  sglang-model:
-    enabled: true
-    image: lmsysorg/sglang
-    tag: latest
-    modelAlias:
-      - "qwen-2.5-7b"
-    containerPort: 30000
-    command:
-      - "python"
-      - "-m"  
-      - "sglang.launch_server"
-      - "--model-path"
-      - "Qwen/Qwen2.5-7B-Instruct"
-      - "--host"
-      - "0.0.0.0"
-      - "--port"
-      - "30000"
-```
-
-### TensorRT-LLM
-
-```yaml
-modelGroups:
-  tensorrt-model:
-    enabled: true
-    image: nvcr.io/nvidia/tritonserver
-    tag: 24.01-trtllm-python-py3
-    modelAlias:
-      - "mistral-7b"
-    containerPort: 8001
-    command:
-      - "tritonserver"
-      - "--model-repository=/models"
-      - "--allow-http=true"
-    # Model preparation init container
-    initContainers:
-      - name: model-converter
-        image: nvcr.io/nvidia/tensorrt_llm/devel:latest
-        command:
-          - "sh"
-          - "-c"
-          - "echo 'Convert HuggingFace models to TensorRT-LLM format here'"
-```
-
 ## Example Configurations
 
-The `examples/` directory contains ready-to-use configurations:
+This framework can be used to deploy any set inference engines, we offer these as examples to get you started quickly. The `examples/` directory contains ready-to-use configurations:
 
 - **`single-vllm.yaml`** - Single vLLM model deployment with persistent caching
 - **`single-sglang.yaml`** - SGLang deployment optimized for structured generation  
 - **`single-tensorrt-llm.yaml`** - TensorRT-LLM with model compilation init container
 - **`multi-engine.yaml`** - Complete multi-engine setup (vLLM + SGLang + TensorRT-LLM)
-- **`doubleword-production.yaml`** - Production configuration with embed + generate models
 
-Use any example as a starting point:
+Use any example as a starting point, for example:
 
 ```bash
 helm install my-stack . -f examples/single-vllm.yaml
@@ -382,63 +300,14 @@ helm install test-release . \
   --dry-run
 ```
 
-## Configuration Reference
-
-### Global Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `nameOverride` | Override the chart name | `""` |
-| `fullnameOverride` | Override the full resource names | `""` |
-
-### Onwards Gateway Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `onwards.replicaCount` | Number of Onwards replicas | `1` |
-| `onwards.image.repository` | Onwards container image | `ghcr.io/doublewordai/onwards` |
-| `onwards.image.tag` | Image tag | `latest` |
-| `onwards.service.type` | Service type | `ClusterIP` |
-| `onwards.service.port` | Service port | `80` |
-| `onwards.containerPort` | Container port | `3000` |
-
-### Model Group Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `modelGroups.<name>.enabled` | Enable this model group | `false` |
-| `modelGroups.<name>.image` | Container image | `""` |
-| `modelGroups.<name>.tag` | Image tag | `latest` |
-| `modelGroups.<name>.modelAlias` | List of client-facing model aliases for API routing | `[]` |
-| `modelGroups.<name>.modelName` | Actual model name/path | `""` |
-| `modelGroups.<name>.containerPort` | Container port | `8000` |
-| `modelGroups.<name>.resources` | Resource requests/limits | `{}` |
-| `modelGroups.<name>.persistentVolumes` | List of persistent volumes | `[]` |
-| `modelGroups.<name>.strategy` | Deployment update strategy | `{type: RollingUpdate}` |
-| `modelGroups.<name>.command` | Container command and arguments | `[]` |
-
-For a complete list of parameters, see [values.yaml](values.yaml).
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `helm unittest . && helm lint .`
-5. Submit a pull request
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
+Reach out at: <hello@doubleword.ai>!
+
 - 📚 [Documentation](https://github.com/doublewordai/inference-stack/wiki)
 - 🐛 [Issue Tracker](https://github.com/doublewordai/inference-stack/issues)
 - 💬 [Discussions](https://github.com/doublewordai/inference-stack/discussions)
-
-## Related Projects
-
-- [Onwards Gateway](https://github.com/doublewordai/onwards) - The upstream AI gateway project
-- [vLLM](https://github.com/vllm-project/vllm) - High-throughput LLM serving
-- [SGLang](https://github.com/sgl-project/sglang) - Structured generation language for LLMs
