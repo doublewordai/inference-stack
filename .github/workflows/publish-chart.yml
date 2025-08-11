@@ -2,13 +2,7 @@ name: Publish Helm Chart
 
 on:
   release:
-    types: [published, created, released, prereleased]
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag to publish (e.g., v0.2.0)'
-        required: true
-        type: string
+    types: [published]
 
 permissions:
   contents: read
@@ -23,36 +17,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
-
-      - name: Extract version from release tag
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
-          else
-            TAG="${GITHUB_REF#refs/tags/}"
-          fi
-          
-          # Verify we have a tag
-          if [ -z "$TAG" ]; then
-            echo "Error: No tag found"
-            exit 1
-          fi
-          
-          # Remove 'v' prefix if present
-          VERSION="${TAG#v}"
-          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Publishing Helm chart version: ${VERSION}"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and Push the Helm Charts to GitHub Container Registry
-        uses: JimCronqvist/action-helm-chart-repo@master
+
+      - name: Log in to GitHub Container Registry  
+        uses: docker/login-action@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package and push Helm chart
+        run: |
+          helm package helm/
+          helm push *.tgz oci://ghcr.io/doublewordai
