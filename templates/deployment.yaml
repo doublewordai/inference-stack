@@ -163,6 +163,21 @@ spec:
               containerPort: {{ .containerPort }}
               protocol: {{ .protocol | default "TCP" }}
             {{- end }}
+          {{- if and $group.startupProbe $group.startupProbe.enabled }}
+          startupProbe:
+            {{- if eq $group.startupProbe.type "http" }}
+            httpGet:
+              path: {{ $group.startupProbe.path }}
+              port: http
+            {{- else if eq $group.startupProbe.type "tcp" }}
+            tcpSocket:
+              port: http
+            {{- end }}
+            initialDelaySeconds: {{ $group.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ $group.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ $group.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ $group.startupProbe.failureThreshold }}
+          {{- end }}
           {{- if and $group.livenessProbe $group.livenessProbe.enabled }}
           livenessProbe:
             {{- if eq $group.livenessProbe.type "http" }}
