@@ -2,7 +2,7 @@ apiVersion: v2
 name: inference-stack
 description: A Helm chart for deploying Onwards gateway with configurable LLM model groups
 type: application
-version: 0.2.1
+version: 0.2.2
 appVersion: "latest"
 home: https://github.com/doublewordai/onwards
 sources:
