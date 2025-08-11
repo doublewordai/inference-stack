@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4](https://github.com/doublewordai/inference-stack/compare/v0.2.3...v0.2.4) (2025-08-11)
+
+
+### Bug Fixes
+
+* add startup probe to inference-stack chart to reduce cold start time ([fc7b205](https://github.com/doublewordai/inference-stack/commit/fc7b20512859f34b46b4cb062362630fbc2c414e))
+
 ## [0.2.3](https://github.com/doublewordai/inference-stack/compare/v0.2.2...v0.2.3) (2025-08-11)
 
 
