@@ -62,19 +62,32 @@ modelGroups:
             name: hf-secret
             key: token
     
+    startupProbe:
+      enabled: true
+      type: http
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60  # 10 minutes for model download
+    
     livenessProbe:
       enabled: true
       type: http
       path: /health
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
     
     readinessProbe:
       enabled: true
       type: http
       path: /health
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
     
     resources:
       requests:
@@ -157,17 +170,29 @@ modelGroups:
       - name: SGLANG_LOG_LEVEL
         value: "info"
     
+    startupProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 45  # 7.5 minutes for embedding model download
+    
     livenessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
     
     readinessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
     
     resources:
       requests:
@@ -254,20 +279,32 @@ modelGroups:
       - name: TENSORRT_LLM_LOG_LEVEL
         value: "INFO"
     
+    startupProbe:
+      enabled: true
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 60
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 60  # 15 minutes for TensorRT compilation
+    
     livenessProbe:
       enabled: true
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 3
     
     readinessProbe:
       enabled: true
       type: http
       path: /v2/health/ready
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 10
-      failureThreshold: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
     
     resources:
       requests:

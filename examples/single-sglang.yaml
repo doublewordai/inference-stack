@@ -73,10 +73,18 @@ modelGroups:
       #       key: token
     
     # Health checks - SGLang uses TCP by default
+    startupProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60  # 10 minutes for model download
+    
     livenessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 10
       timeoutSeconds: 5
       failureThreshold: 3
@@ -84,10 +92,10 @@ modelGroups:
     readinessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 5
       timeoutSeconds: 3
-      failureThreshold: 10
+      failureThreshold: 3
     
     # Resource requirements
     resources:

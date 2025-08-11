@@ -71,11 +71,20 @@ modelGroups:
         value: "1"
     
     # Health checks - Triton server health endpoint
+    startupProbe:
+      enabled: true
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 60
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 80  # 20 minutes for model compilation and download
+    
     livenessProbe:
       enabled: true
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 300  # TensorRT models take longer to load
+      initialDelaySeconds: 5
       periodSeconds: 15
       timeoutSeconds: 10
       failureThreshold: 3
@@ -84,10 +93,10 @@ modelGroups:
       enabled: true
       type: http
       path: /v2/health/ready
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 10
       timeoutSeconds: 5
-      failureThreshold: 20  # Model compilation can take time
+      failureThreshold: 3
     
     # Resource requirements - TensorRT-LLM needs significant resources
     resources:

@@ -115,11 +115,15 @@ onwards:
   probes:
     # Health check path (used by both liveness and readiness)
     path: /v1/models
-    liveness:
+    startup:
       initialDelaySeconds: 30
       periodSeconds: 10
-    readiness:
+      failureThreshold: 60
+    liveness:
       initialDelaySeconds: 5
+      periodSeconds: 10
+    readiness:
+      initialDelaySeconds: 2
       periodSeconds: 5
   
   # LoadBalancer service configuration (for external access)
@@ -216,6 +220,23 @@ modelGroups:
       #       name: hf-token
       #       key: token
 
+    # Startup probe configuration (waits for model download and initialization)
+    startupProbe:
+      # Whether to enable startup probes
+      enabled: true
+      # Probe type: 'http' for HTTP GET requests, 'tcp' for TCP socket checks
+      type: http
+      # HTTP path to check (only used for http type)
+      path: /health
+      # Delay before first probe after container starts
+      initialDelaySeconds: 30
+      # How often to perform the probe
+      periodSeconds: 10
+      # Timeout for each probe
+      timeoutSeconds: 5
+      # Number of failures before giving up (30 * 10 = 5 minutes for model download)
+      failureThreshold: 30
+
     # Liveness probe configuration (checks if container is alive)
     livenessProbe:
       # Whether to enable liveness probes
@@ -224,8 +245,8 @@ modelGroups:
       type: http
       # HTTP path to check (only used for http type)
       path: /health
-      # Delay before first probe after container starts
-      initialDelaySeconds: 300
+      # Delay before first probe after container starts (startup probe handles initial delay)
+      initialDelaySeconds: 5
       # How often to perform the probe
       periodSeconds: 10
       # Timeout for each probe
@@ -241,8 +262,8 @@ modelGroups:
       type: http
       # HTTP path to check (only used for http type)
       path: /health
-      # Delay before first probe after container starts
-      initialDelaySeconds: 300
+      # Delay before first probe after container starts (startup probe handles initial delay)
+      initialDelaySeconds: 2
       # How often to perform the probe
       periodSeconds: 5
       # Timeout for each probe
@@ -262,9 +283,6 @@ modelGroups:
     # Persistent volumes configuration
     # Creates PVCs and mounts them in Deployment pods  
     persistentVolumes: []
-    
-    # Additional container ports
-    additionalPorts: []
       # Example single volume:
       # - name: model-cache
       #   size: 100Gi
@@ -386,19 +404,32 @@ modelGroups:
       - name: CUDA_VISIBLE_DEVICES
         value: "0"
 
+    # Startup probe (waits for model download and initialization)
+    startupProbe:
+      enabled: true
+      type: tcp
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+
     # Liveness probe (using TCP since SGLang may not have HTTP health endpoint)
     livenessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
     # Readiness probe
     readinessProbe:
       enabled: true
       type: tcp
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
 
     # Resource requirements
     resources:
@@ -491,21 +522,35 @@ modelGroups:
     # Environment variables
     env: []
     
+    # Startup probe (waits for model download and compilation)
+    startupProbe:
+      enabled: false
+      type: http
+      path: /v2/health/ready
+      initialDelaySeconds: 30
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 60
+
     # Liveness probe
     livenessProbe:
       enabled: false
       type: http
       path: /v2/health/live
-      initialDelaySeconds: 300
+      initialDelaySeconds: 5
       periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 3
     
     # Readiness probe
     readinessProbe:
       enabled: false
       type: http
       path: /v2/health/ready
-      initialDelaySeconds: 300
+      initialDelaySeconds: 2
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
     
     # Resource requirements (TensorRT typically needs significant GPU memory)
     resources:
