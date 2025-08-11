@@ -32,5 +32,5 @@ jobs:
 
       - name: Package and push Helm chart
         run: |
-          helm package helm/
+          helm package .
           helm push *.tgz oci://ghcr.io/doublewordai
