@@ -27,12 +27,11 @@ modelGroups:
     containerPort: 8000
     replicaCount: 2  # Scale for high availability
     
-    # Update strategy for Deployment
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods
     
     command:
       - "vllm"
@@ -98,12 +97,13 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "24Gi"
     
+    # Persistent storage for model cache (StatefulSet volumeClaimTemplates)
     persistentVolumes:
       - name: model-cache
         size: 50Gi
         storageClass: "fast-ssd"
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce  # Each replica gets its own volume
         mountPath: /root/.cache/huggingface
     
     podSecurityContext:
@@ -141,12 +141,11 @@ modelGroups:
     containerPort: 30001
     replicaCount: 1
     
-    # Update strategy for Deployment
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods
     
     command:
       - "python"
@@ -203,12 +202,13 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "12Gi"
     
+    # Persistent storage for model cache (StatefulSet volumeClaimTemplates)
     persistentVolumes:
       - name: model-cache
         size: 30Gi
         storageClass: "standard"
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce  # Each replica gets its own volume
         mountPath: /root/.cache
     
     volumes:
@@ -251,12 +251,11 @@ modelGroups:
     containerPort: 8001
     replicaCount: 1
     
-    # Update strategy for Deployment
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods
     
     command:
       - "tritonserver"
@@ -315,12 +314,13 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "24Gi"
     
+    # Persistent storage for compiled models (StatefulSet volumeClaimTemplates)
     persistentVolumes:
       - name: model-storage
         size: 80Gi
         storageClass: "fast-ssd"
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce  # Each replica gets its own volume
         mountPath: /models
     
     volumes:

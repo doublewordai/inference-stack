@@ -188,12 +188,11 @@ modelGroups:
     # Number of replicas to deploy for this model group
     replicaCount: 1
 
-    # Update strategy for Deployments
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods by default
 
     # Container command passed to the inference engine
     command:
@@ -280,16 +279,17 @@ modelGroups:
         nvidia.com/gpu: 1
         memory: 8Gi
 
-    # Persistent volumes configuration
-    # Creates PVCs and mounts them in Deployment pods  
+    # Persistent volumes configuration for StatefulSet
+    # Each replica gets its own PVC via StatefulSet volumeClaimTemplates
+    # This avoids multi-attach issues and allows independent scaling
     persistentVolumes: []
       # Example single volume:
       # - name: model-cache
       #   size: 100Gi
       #   mountPath: /root/.cache/huggingface
-      #   storageClass: ""  # empty string uses default
+      #   storageClass: ""  # empty string uses default storage class
       #   accessModes:
-      #     - ReadWriteOnce
+      #     - ReadWriteOnce  # Each replica gets its own volume
       #
       # Example multiple volumes:
       # - name: model-cache
@@ -380,12 +380,11 @@ modelGroups:
     # Number of replicas
     replicaCount: 1
 
-    # Update strategy for Deployments
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods by default
 
     # Command for SGLang server
     command:
@@ -509,12 +508,11 @@ modelGroups:
     # Number of replicas
     replicaCount: 1
 
-    # Update strategy for Deployments
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods by default
 
     # Command for TensorRT-LLM
     command: []

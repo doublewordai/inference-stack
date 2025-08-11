@@ -54,12 +54,11 @@ modelGroups:
     containerPort: 8000
     replicaCount: 1
     
-    # Update strategy for Deployment
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods
     
     # vLLM server command
     command:
@@ -128,13 +127,14 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "24Gi"
     
-    # Persistent storage for model cache
+    # Persistent storage for model cache (StatefulSet volumeClaimTemplates)
+    # Each replica gets its own PVC, avoiding multi-attach issues
     persistentVolumes:
       - name: model-cache
         size: 50Gi
         storageClass: ""  # Use default storage class
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce  # Each replica gets its own volume
         mountPath: /root/.cache/huggingface
     
     # Security context

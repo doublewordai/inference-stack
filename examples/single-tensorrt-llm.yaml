@@ -30,12 +30,11 @@ modelGroups:
     containerPort: 8001
     replicaCount: 1
     
-    # Update strategy for Deployment
-    strategy:
+    # Update strategy for StatefulSet
+    updateStrategy:
       type: RollingUpdate
       rollingUpdate:
-        maxSurge: 1
-        maxUnavailable: 0
+        partition: 0  # Update all pods
     
     # Triton server command
     command:
@@ -108,13 +107,14 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "32Gi"
     
-    # Persistent storage for TensorRT-LLM compiled models
+    # Persistent storage for TensorRT-LLM compiled models (StatefulSet volumeClaimTemplates)
+    # Each replica gets its own PVC, avoiding multi-attach issues
     persistentVolumes:
       - name: model-storage
         size: 100Gi  # Larger storage for compiled models
         storageClass: "fast-ssd"  # Recommend fast storage for model loading
         accessModes:
-          - ReadWriteOnce
+          - ReadWriteOnce  # Each replica gets its own volume
         mountPath: /models
     
     # Security context
