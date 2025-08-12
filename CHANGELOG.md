@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/doublewordai/inference-stack/compare/v0.3.0...v0.4.0) (2025-08-12)
+
+
+### Features
+
+* convert from deployments to statefulsets for model groups ([05fb5fd](https://github.com/doublewordai/inference-stack/commit/05fb5fd46f2eec2635b27c7eef7495ba6a3ae452))
+
+
+### Bug Fixes
+
+* revert back to deployments with more transparent configuration ([1f1bc5e](https://github.com/doublewordai/inference-stack/commit/1f1bc5e6c54450f36f600ff22baa76e6d748a460))
+
 ## [0.3.0](https://github.com/doublewordai/inference-stack/compare/v0.2.4...v0.3.0) (2025-08-11)
 
 
