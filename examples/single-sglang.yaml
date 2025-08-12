@@ -29,11 +29,12 @@ modelGroups:
     containerPort: 30000
     replicaCount: 1
     
-    # Update strategy for StatefulSet
-    updateStrategy:
+    # Update strategy for Deployment
+    strategy:
       type: RollingUpdate
       rollingUpdate:
-        partition: 0  # Update all pods
+        maxSurge: 1
+        maxUnavailable: 0
     
     # SGLang server command
     command:
@@ -106,15 +107,14 @@ modelGroups:
         nvidia.com/gpu: "1"
         memory: "16Gi"
     
-    # Persistent storage for model cache (StatefulSet volumeClaimTemplates)
-    # Each replica gets its own PVC, avoiding multi-attach issues
-    persistentVolumes:
-      - name: model-cache
-        size: 50Gi
-        storageClass: ""  # Use default storage class
-        accessModes:
-          - ReadWriteOnce  # Each replica gets its own volume
-        mountPath: /root/.cache
+    # Persistent storage - empty by default, use init containers for model weights
+    persistentVolumes: []
+    #   - name: model-cache
+    #     size: 50Gi
+    #     storageClass: ""  # Use default storage class
+    #     accessModes:
+    #       - ReadWriteMany  # Share across replicas
+    #     mountPath: /model-cache
     
     # Security context
     podSecurityContext:

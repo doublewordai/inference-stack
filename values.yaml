@@ -188,13 +188,15 @@ modelGroups:
     # Number of replicas to deploy for this model group
     replicaCount: 1
 
-    # Update strategy for StatefulSet
-    updateStrategy:
+    # Update strategy for Deployment
+    strategy:
       type: RollingUpdate
       rollingUpdate:
-        partition: 0  # Update all pods by default
+        maxSurge: 1
+        maxUnavailable: 0
 
     # Container command passed to the inference engine
+    # Specify the complete command including executable and arguments
     command:
       - "--host"
       - "0.0.0.0"
@@ -279,30 +281,22 @@ modelGroups:
         nvidia.com/gpu: 1
         memory: 8Gi
 
-    # Persistent volumes configuration for StatefulSet
-    # Each replica gets its own PVC via StatefulSet volumeClaimTemplates
-    # This avoids multi-attach issues and allows independent scaling
+    # Persistent volumes configuration
+    # Creates PVCs for shared storage across replicas
+    # Leave empty by default - use init containers to copy model weights
     persistentVolumes: []
-      # Example single volume:
+      # Example volume configuration:
       # - name: model-cache
       #   size: 100Gi
-      #   mountPath: /root/.cache/huggingface
+      #   mountPath: /model-cache
       #   storageClass: ""  # empty string uses default storage class
       #   accessModes:
-      #     - ReadWriteOnce  # Each replica gets its own volume
-      #
-      # Example multiple volumes:
-      # - name: model-cache
-      #   size: 100Gi
-      #   mountPath: /root/.cache/huggingface
-      #   accessModes:
-      #     - ReadWriteOnce
-      # - name: model-weights
-      #   size: 200Gi
-      #   mountPath: /models
-      #   storageClass: fast-ssd
-      #   accessModes:
-      #     - ReadWriteOnce
+      #     - ReadWriteMany  # For sharing across replicas
+      #   # Optional PVC-specific settings:
+      #   # labels: {}
+      #   # annotations: {}
+      #   # selector: {}
+      #   # volumeMode: Filesystem
 
     # Security context for the entire pod
     podSecurityContext:
@@ -317,8 +311,24 @@ modelGroups:
       # Additional annotations for the service account
       annotations: {}
 
-    # Init containers for setup tasks (e.g., model downloading)
+    # Init containers for setup tasks (e.g., copying model weights from bit-harbor images)
+    # Full Kubernetes initContainers specification supported
     initContainers: []
+      # Example: Copy model weights from bit-harbor image
+      # - name: copy-model-weights
+      #   image: ghcr.io/doublewordai/bit-harbor:llama-3.1-8b
+      #   command:
+      #     - cp
+      #     - -r
+      #     - /models/*
+      #     - /shared/models/
+      #   volumeMounts:
+      #     - name: model-storage
+      #       mountPath: /shared/models
+      #   resources:
+      #     requests:
+      #       cpu: 100m
+      #       memory: 128Mi
 
     # Additional volume mounts for the container
     volumeMounts: []
@@ -380,11 +390,12 @@ modelGroups:
     # Number of replicas
     replicaCount: 1
 
-    # Update strategy for StatefulSet
-    updateStrategy:
+    # Update strategy for Deployment
+    strategy:
       type: RollingUpdate
       rollingUpdate:
-        partition: 0  # Update all pods by default
+        maxSurge: 1
+        maxUnavailable: 0
 
     # Command for SGLang server
     command:
@@ -508,11 +519,12 @@ modelGroups:
     # Number of replicas
     replicaCount: 1
 
-    # Update strategy for StatefulSet
-    updateStrategy:
+    # Update strategy for Deployment
+    strategy:
       type: RollingUpdate
       rollingUpdate:
-        partition: 0  # Update all pods by default
+        maxSurge: 1
+        maxUnavailable: 0
 
     # Command for TensorRT-LLM
     command: []

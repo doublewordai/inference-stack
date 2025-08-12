@@ -1,0 +1,54 @@
+# Persistent Volume Claims for Model Groups
+{{- range $groupName, $group := .Values.modelGroups }}
+{{- if $group.enabled }}
+{{- range $pvc := $group.persistentVolumes }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "inference-stack.fullname" $ }}-{{ $groupName }}-{{ $pvc.name }}
+  labels:
+    {{- include "inference-stack.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: model-group
+    app.kubernetes.io/model-group: {{ $groupName }}
+    app.kubernetes.io/volume: {{ $pvc.name }}
+  {{- with $pvc.labels }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $pvc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $pvc.accessModes }}
+  accessModes:
+    {{- range . }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- if $pvc.storageClassName }}
+  {{- if eq $pvc.storageClassName "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ $pvc.storageClassName | quote }}
+  {{- end }}
+  {{- else if $pvc.storageClass }}
+  {{- if eq $pvc.storageClass "-" }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ $pvc.storageClass | quote }}
+  {{- end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $pvc.size | quote }}
+  {{- with $pvc.selector }}
+  selector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $pvc.volumeMode }}
+  volumeMode: {{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
