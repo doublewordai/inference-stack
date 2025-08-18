@@ -31,7 +31,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.onwards.loadBalancer.nameOverwrite | default include "inference-stack.fullname" . "-onwards-loadbalancer" }}
+  name: {{ .Values.onwards.loadBalancer.nameOverwrite | default (printf "%s-onwards-loadbalancer" (include "inference-stack.fullname" .)) }}
   labels:
     {{- include "inference-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: onwards
