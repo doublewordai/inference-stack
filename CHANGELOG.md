@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3](https://github.com/doublewordai/inference-stack/compare/v0.4.2...v0.4.3) (2025-08-27)
+
+
+### Bug Fixes
+
+* add args as an option ([2494fe3](https://github.com/doublewordai/inference-stack/commit/2494fe3a92a1ec1d01def945c2788b49f3c48019))
+
 ## [0.4.2](https://github.com/doublewordai/inference-stack/compare/v0.4.1...v0.4.2) (2025-08-18)
 
 
