@@ -154,6 +154,10 @@ spec:
           command:
             {{- toYaml $group.command | nindent 12 }}
           {{- end }}
+          {{- if $group.args }}
+          args:
+            {{- toYaml $group.args | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ $group.containerPort }}

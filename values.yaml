@@ -336,6 +336,9 @@ modelGroups:
     # Additional volumes for the pod
     volumes: []
 
+    # Additional command line arguments for the model group
+    args: []
+
     # Node selection constraints (e.g., GPU node requirements)
     nodeSelector:
       {}
@@ -482,6 +485,9 @@ modelGroups:
     # Image pull secrets
     imagePullSecrets: []
 
+    # Additional command line arguments for the model group
+    args: []
+
     # Node selection, tolerations, and affinity
     nodeSelector: {}
     tolerations: []
@@ -608,6 +614,9 @@ modelGroups:
     
     # Additional container ports
     additionalPorts: []
+    
+    # Additional command line arguments for the model group
+    args: []
 
 # Ingress configuration for external access to Onwards gateway
 ingress:
