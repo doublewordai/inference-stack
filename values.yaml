@@ -54,6 +54,7 @@ onwards:
     # External port for the service
     port: 80
     # nodePort: 30080  # Only used if type is NodePort
+    annotations: {}
 
   # Port that the Onwards container listens on
   containerPort: 3000
