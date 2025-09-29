@@ -6,6 +6,10 @@ metadata:
   labels:
     {{- include "inference-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: onwards
+  {{- with .Values.onwards.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.onwards.service.type }}
   ports:
