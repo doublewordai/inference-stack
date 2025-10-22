@@ -84,15 +84,13 @@ Generate the config.json content for onwards
 {{- $targets := dict }}
 {{- range $groupName, $group := .Values.modelGroups }}
 {{- if $group.enabled }}
-{{- range $alias := $group.modelAlias }}
 {{- $target := dict }}
 {{- $_ := set $target "url" (printf "http://%s-%s:%v" (include "inference-stack.fullname" $) $groupName $group.service.port) }}
 {{- if $group.apiKey }}
 {{- $_ := set $target "onwards_key" $group.apiKey }}
 {{- end }}
-{{- $_ := set $target "onwards_model" ($group.modelName | default $alias) }}
-{{- $_ := set $targets $alias $target }}
-{{- end }}
+{{- $_ := set $target "onwards_model" ($group.modelName | default $group.modelName) }}
+{{- $_ := set $targets $group.modelName $target }}
 {{- end }}
 {{- end }}
 {{- $config := dict "targets" $targets }}
