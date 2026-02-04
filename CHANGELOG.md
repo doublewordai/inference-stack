@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4](https://github.com/doublewordai/inference-stack/compare/v0.4.3...v0.4.4) (2026-02-04)
+
+
+### Bug Fixes
+
+* add ability to deploy configmaps to be mounted in containers ([c845b81](https://github.com/doublewordai/inference-stack/commit/c845b811c49e1b49c21b413a0a89d2c5bf48cbe8))
+
 ## [0.4.3](https://github.com/doublewordai/inference-stack/compare/v0.4.2...v0.4.3) (2025-08-27)
 
 
