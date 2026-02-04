@@ -618,6 +618,29 @@ modelGroups:
     # Additional command line arguments for the model group
     args: []
 
+# Generic ConfigMaps for custom configuration files
+# Create ConfigMaps with inline data that can be mounted into pods
+# Each ConfigMap can contain multiple files (data keys)
+configMaps: {}
+  # Example: Chat template ConfigMap with Jinja2 syntax
+  # chat-templates:
+  #   template.jinja: |
+  #     {%- for message in messages %}
+  #     {{ message.role }}: {{ message.content }}
+  #     {%- endfor %}
+  #
+  # To mount in a model group, add to volumes and volumeMounts:
+  # modelGroups:
+  #   vllm-gemma:
+  #     volumes:
+  #       - name: chat-templates
+  #         configMap:
+  #           name: <release-name>-chat-templates
+  #     volumeMounts:
+  #       - name: chat-templates
+  #         mountPath: /app/templates
+  #         readOnly: true
+
 # Ingress configuration for external access to Onwards gateway
 ingress:
   # Whether to create an ingress resource for external access

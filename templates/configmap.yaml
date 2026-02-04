@@ -9,3 +9,19 @@ metadata:
 data:
   config.json: |-
 {{ include "inference-stack.onwards.config" . | indent 4 }}
+
+{{- range $name, $configMap := .Values.configMaps }}
+---
+# Generic ConfigMaps
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "inference-stack.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "inference-stack.labels" $ | nindent 4 }}
+data:
+  {{- range $filename, $content := $configMap }}
+  {{ $filename }}: |-
+{{ $content | indent 4 }}
+  {{- end }}
+{{- end }}
