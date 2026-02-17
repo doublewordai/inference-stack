@@ -1,6 +1,6 @@
 # Doubleword Inference Stack
 
-A comprehensive Helm chart for deploying production grade LLMs. This stack is a lightweight, transparent framework to allow you to deploy any model on any inference engine with minimal configuration. It is designed to be flexible, allowing you to easily switch between different models and inference engines without changing your client code.
+A Helm chart for deploying LLMs. This stack is a lightweight, transparent framework to allow you to deploy any model on any inference engine with minimal configuration. It is designed to be flexible, allowing you to easily switch between different models and inference engines without changing your client code.
 
 The spirit of this project is to produce a framework that solves distributed serving of LLMs in a non-specific way to the inference engine running the weights.
 
@@ -19,15 +19,6 @@ The stack consists of:
 - **Onwards Gateway**: The API gateway that routes requests to different inference engines.
 - **Model Groups**: A grouping of kubernetes resources that represent a deployment of an inference engine. Each model group can only have one active model at a time, but can have custom numbers of replicas.
 - **Inference Engines**: Backend services like vLLM, SGLang, TensorRT-LLM that handle the actual inference requests.
-
-## Roadmap
-
-We are actively developing this stack to support sophisticated LLM deployments. See our [issues](https://github.com/doublewordai/inference-stack/issues) for the latest features and improvements. Some key features we are working on include:
-
-- **Model Group Prefix Aware Routing**: <https://github.com/doublewordai/inference-stack/issues/4>
-- **More complicated model group configurations**, such as dynamo: <https://github.com/doublewordai/inference-stack/issues/5>
-- **AutoScaling**: dynamic: <https://github.com/doublewordai/inference-stack/issues/6> and scale to zero: <https://github.com/doublewordai/inference-stack/issues/7>
-- **Inference Engine Support**: Adding example and support for more inference engines, please [open an issue](https://github.com/doublewordai/inference-stack/issues/new) to request specific engines.
 
 ## Getting Started
 
@@ -307,7 +298,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 Reach out at: <hello@doubleword.ai>!
-
-- 📚 [Documentation](https://github.com/doublewordai/inference-stack/wiki)
-- 🐛 [Issue Tracker](https://github.com/doublewordai/inference-stack/issues)
 - 💬 [Discussions](https://github.com/doublewordai/inference-stack/discussions)
